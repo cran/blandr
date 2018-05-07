@@ -16,14 +16,14 @@
 #' measurement2 <- rnorm(100)
 #'
 #' # Displays basic statistics for the two measurements in a readable form
-#' blandr.display( measurement1 , measurement2 )
+#' blandr.output.text( measurement1 , measurement2 )
 #'
 #' @export
 
-blandr.display <- function(method1, method2, sig.level = 0.95) {
-    
+blandr.output.text <- function(method1, method2, sig.level = 0.95) {
+
     result <- blandr.statistics(method1, method2, sig.level)
-    
+
     # Print summary Bland-Altman statistics
     cat("Number of comparisons: ", length(result$differences), "\n")
     cat("Maximum value for average measures: ", max(result$means), "\n")
@@ -51,22 +51,22 @@ blandr.display <- function(method1, method2, sig.level = 0.95) {
     cat("\n")
     cat("Derived measures: ", "\n")
     cat("Mean of differences/means: ", (mean(result$differences/result$means * 100)), "\n")
-    cat("Point estimate of bias as proportion of lowest average: ", (result$bias/min(result$means) * 
+    cat("Point estimate of bias as proportion of lowest average: ", (result$bias/min(result$means) *
         100), "\n")
-    cat("Point estimate of bias as proportion of highest average", (result$bias/max(result$means) * 
+    cat("Point estimate of bias as proportion of highest average", (result$bias/max(result$means) *
         100), "\n")
-    cat("Spread of data between lower and upper LoAs: ", (result$upperLOA - result$lowerLOA), 
+    cat("Spread of data between lower and upper LoAs: ", (result$upperLOA - result$lowerLOA),
         "\n")
-    cat("Bias as proportion of LoA spread: ", (result$bias/(result$upperLOA - result$lowerLOA) * 
+    cat("Bias as proportion of LoA spread: ", (result$bias/(result$upperLOA - result$lowerLOA) *
         100), "\n")
     cat("\n")
-    cat("Bias: \n", result$bias, " (", result$biasLowerCI, " to ", result$biasUpperCI, ")", 
+    cat("Bias: \n", result$bias, " (", result$biasLowerCI, " to ", result$biasUpperCI, ")",
         "\n")
-    cat("ULoA: \n", result$upperLOA, " (", result$upperLOA_lowerCI, " to ", result$upperLOA_upperCI, 
+    cat("ULoA: \n", result$upperLOA, " (", result$upperLOA_lowerCI, " to ", result$upperLOA_upperCI,
         ")", "\n")
-    cat("LLoA: \n", result$lowerLOA, " (", result$lowerLOA_lowerCI, " to ", result$lowerLOA_upperCI, 
+    cat("LLoA: \n", result$lowerLOA, " (", result$lowerLOA_lowerCI, " to ", result$lowerLOA_upperCI,
         ")", "\n")
     cat("\n")
-    
+
     # END OF FUNCTION
 }

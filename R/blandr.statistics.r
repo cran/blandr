@@ -25,8 +25,11 @@
 #' @param method2 A list of numbers.
 #' @param sig.level (Optional) Two-tailed significance level. Expressed from 0 to 1. Defaults to 0.95.
 #' @param LoA.mode (Optional) Switch to change how accurately the limits of agreement (LoA) are calculated from the bias and its standard deviation. The default is LoA.mode=1 which calculates LoA with the more accurate 1.96x multiplier. LoA.mode=2 uses the 2x multiplier which was used in the original papers. This should really be kept at default, except to double check calculations in older papers.
+#'
 #' @return means List of arithmetic mean of the two methods
 #' @return differences List of differences of the two methods
+#' @return method1 Returns the 'method1' list in the data frame if further evaluation is needed
+#' @return method2 Returns the 'method2' list in the data frame if further evaluation is needed
 #' @return sig.level Significance level supplied to the function
 #' @return sig.level.convert.to.z Significance level convert to Z value
 #' @return bias Bias of the two methods
@@ -41,8 +44,13 @@
 #' @return lowerLOA Lower limit of agreement
 #' @return lowerLOA_upperCI Upper confidence interval of the lower limit of agreement
 #' @return lowerLOA_lowerCI Lower confidence interval of the lower limit of agreement
+#' @return proportion Differences/means*100
+#' @return no.of.observations Number of observations
+#' @return regression.equation A regression equation to help determine if there is any proportional bias
+#' @return regression.fixed.slope The slope value of the regression equation
+#' @return regression.fixed.intercept The intercept value of the regression equation
 #'
-#' @importFrom  stats coef cor lm na.omit qnorm qt sd t.test
+#' @importFrom stats coef cor lm na.omit qnorm qt sd t.test
 #'
 #' @include blandr.data.preparation.r
 #'
@@ -56,30 +64,34 @@
 #'
 #' @export
 
-blandr.statistics <- function(method1, method2, sig.level = 0.95, LoA.mode = 1) {
-    
+blandr.statistics <- function( method1 ,
+                               method2 ,
+                               sig.level = 0.95,
+                               LoA.mode = 1 ) {
+
     # This sends to the preparation function, which does some sense checks on the data And
     # makes sure that the values are prepared
     ba.data <- blandr.data.preparation(method1, method2, sig.level)
-    
+
     # method1 and method2 are the measurements
     means <- (ba.data$method1 + ba.data$method2)/2
     differences <- ba.data$method1 - ba.data$method2
     bias <- mean(differences)
     biasStdDev <- sd(differences)
-    
+
     # Convert confidence interval to a two-tailed z-value Don't really need this but kept as
     # a remnant of old version to possibly use in the future
     alpha <- 1 - sig.level
     sig.level.two.tailed <- 1 - (alpha/2)
     sig.level.convert.to.z <- qnorm(sig.level.two.tailed)
-    
+
     # Compute the 95% limits of agreement (based on 1st paper) Don't use the significance
     # level supplied to the function here!  (The significance level is for confidence
     # intervals, not for limits of agreement!)  We want to know in the sample what limits 95%
     # of the pop resides within The LoA.mode switch can change before the +/-1.96 multiplier
     # used in more recent papers Or the estimated +/-2 multiplier used in the original paper
-    # The default is LoA.mode which gives a LoA.multiplier of 1.96
+    # The default is LoA.mode which gives a LoA.multiplier of 1.96. In future we could use an
+    # even more precise multipler for limits of agreement.
     if (LoA.mode == 2) {
         LoA.multiplier <- 2
     } else {
@@ -87,15 +99,16 @@ blandr.statistics <- function(method1, method2, sig.level = 0.95, LoA.mode = 1) 
     }
     upperLOA <- bias + (LoA.multiplier * biasStdDev)
     lowerLOA <- bias - (LoA.multiplier * biasStdDev)
-    
+
     # Confidence intervals (based on 2nd paper) Based on significance level supplied
-    # (defaults to 95% CI) For mean
+    # (defaults to 95% CI) CI for mean
     biasSEM <- sd(differences)/sqrt(length(differences))
     biasCI <- qt(sig.level.two.tailed, df = length(differences) - 1) * biasSEM
     biasUpperCI <- bias + biasCI
     biasLowerCI <- bias - biasCI
-    # For limits of agreement LOAVariance from Carkeet
-    LOAVariance <- ((1/length(differences)) + ((sig.level.convert.to.z^2)/(2 * (length(differences) - 
+
+    # CI for limits of agreement LOAVariance from Carkeet
+    LOAVariance <- ((1/length(differences)) + ((sig.level.convert.to.z^2)/(2 * (length(differences) -
         1)))) * biasStdDev^2
     LOA_SEM <- sqrt(LOAVariance)
     LOA_CI <- qt(sig.level.two.tailed, df = length(differences) - 1) * LOA_SEM
@@ -103,13 +116,48 @@ blandr.statistics <- function(method1, method2, sig.level = 0.95, LoA.mode = 1) 
     upperLOA_lowerCI <- upperLOA - LOA_CI
     lowerLOA_upperCI <- lowerLOA + LOA_CI
     lowerLOA_lowerCI <- lowerLOA - LOA_CI
-    
-    return(list(means = means, differences = differences, sig.level = sig.level, sig.level.convert.to.z = sig.level.convert.to.z, 
-        bias = bias, biasUpperCI = biasUpperCI, biasLowerCI = biasLowerCI, biasStdDev = biasStdDev, 
-        biasSEM = biasSEM, LOA_SEM = LOA_SEM, upperLOA = upperLOA, upperLOA_upperCI = upperLOA_upperCI, 
-        upperLOA_lowerCI = upperLOA_lowerCI, lowerLOA = lowerLOA, lowerLOA_upperCI = lowerLOA_upperCI, 
-        lowerLOA_lowerCI = lowerLOA_lowerCI)  #CLOSE OF LIST
+
+    # Difference/mean proportion
+    proportion <- differences / means * 100
+
+    # Number of observations
+    no.of.observations <- length(means)
+
+    # Works out numbers for proportional bias
+    # Couldn't figure this out myself So took example code from
+    # http://rforpublichealth.blogspot.co.uk/2013/11/ggplot2-cheatsheet-for-scatterplots.html
+    m <- lm( differences ~  means )
+    a <- signif(coef(m)[1], digits = 2)
+    b <- signif(coef(m)[2], digits = 2)
+    regression.equation <- paste("y(differences) = ", b, " x(means) + ", a, sep = "")
+
+    return(
+      list(
+        means = means ,
+        differences = differences ,
+        method1 = method1 ,
+        method2 = method2 ,
+        sig.level = sig.level,
+        sig.level.convert.to.z = sig.level.convert.to.z ,
+        bias = bias ,
+        biasUpperCI = biasUpperCI ,
+        biasLowerCI = biasLowerCI ,
+        biasStdDev = biasStdDev ,
+        biasSEM = biasSEM ,
+        LOA_SEM = LOA_SEM ,
+        upperLOA = upperLOA ,
+        upperLOA_upperCI = upperLOA_upperCI ,
+        upperLOA_lowerCI = upperLOA_lowerCI ,
+        lowerLOA = lowerLOA ,
+        lowerLOA_upperCI = lowerLOA_upperCI ,
+        lowerLOA_lowerCI = lowerLOA_lowerCI ,
+        proportion = proportion ,
+        no.of.observations = no.of.observations ,
+        regression.equation = regression.equation ,
+        regression.fixed.slope = b ,
+        regression.fixed.intercept = a
+        )  #CLOSE OF LIST
 )  #CLOSE OF RETURN
-    
+
     # END OF FUNCTION
 }

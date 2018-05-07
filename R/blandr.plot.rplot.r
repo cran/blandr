@@ -25,7 +25,7 @@
 #' measurement2 <- rnorm(100)
 #'
 #' # Generates a basic plot
-#' # Do note the basic.plot function wasn't meant to be used on it's own
+#' # Do note the blandr.plot.rplot function wasn't meant to be used on it's own
 #' # and is generally called via the bland.altman.display.and.draw function
 #'
 #' # Passes data to the blandr.statistics function to generate Bland-Altman statistics
@@ -34,17 +34,17 @@
 #' plot.limits <- blandr.plot.limits( statistics.results )
 #'
 #' # Generates a basic plot, with no optional arguments
-#' blandr.basic.plot( statistics.results , plot.limits )
+#' blandr.plot.rplot( statistics.results , plot.limits )
 #'
 #' # Generates a basic plot, with title changed
-#' blandr.basic.plot( statistics.results , plot.limits , plotTitle = 'Bland-Altman example plot' )
+#' blandr.plot.rplot( statistics.results , plot.limits , plotTitle = 'Bland-Altman example plot' )
 #' # Generates a basic plot, with title changed, and confidence intervals off
-#' blandr.basic.plot( statistics.results , plot.limits , plotTitle = 'Bland-Altman example plot' ,
+#' blandr.plot.rplot( statistics.results , plot.limits , plotTitle = 'Bland-Altman example plot' ,
 #' ciDisplay = FALSE , ciShading = FALSE )
 #'
 #' @export
 
-blandr.basic.plot <- function(statistics.results, plot.limits, method1name = "Method 1",
+blandr.plot.rplot <- function(statistics.results, plot.limits, method1name = "Method 1",
     method2name = "Method 2", plotTitle = "Bland-Altman plot for comparison of 2 methods",
     annotate = FALSE, ciDisplay = TRUE, ciShading = TRUE, normalLow = FALSE, normalHigh = FALSE,
     point_size = 0.8) {
